@@ -39,7 +39,7 @@
 
 
 
-![VoiceScript UI](https://raw.githubusercontent.com/TUSHARTAMRAKAR/VoiceScript/main/docs/Speech%20Recognition%20System.png)
+![VoiceScript UI](https://raw.githubusercontent.com/TUSHARTAMRAKAR/VoiceScript/main/docs/Screenshot.png)
 
 </div>
 
