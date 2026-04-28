@@ -36,10 +36,10 @@
 
 <div align="center">
 
-> **Add your screenshot here** — take a full-page screenshot of VoiceScript running in your browser and drag it into this section on GitHub.
 
-<!-- Replace the line below with your actual screenshot -->
-![VoiceScript UI](./docs/screenshot.png)
+
+
+![VoiceScript UI](https://raw.githubusercontent.com/TUSHARTAMRAKAR/VoiceScript/main/docs/Speech%20Recognition%20System.png)
 
 </div>
 
