@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<!--
+  index.html
+  ─────────────────────────────────────────────────────────
+  THIS FILE IS THE SKELETON OF THE WEBPAGE.
+
+  HTML defines WHAT is on the page (buttons, text boxes, etc.)
+  CSS (style.css) controls HOW it looks
+  JavaScript (app.js) controls WHAT HAPPENS when you interact
+  ─────────────────────────────────────────────────────────
+-->
+<html lang="en">
+
+<head>
+  <!-- charset: tells browser to use standard characters -->
+  <meta charset="UTF-8" />
+  <!-- viewport: makes the page look good on mobile too -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech Recognition System</title>
+
+  <!-- Google Fonts: we're using "Space Grotesk" for headings -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Link to our CSS file — controls all the styling -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ── HEADER ───────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <!-- SVG waveform icon — represents audio/sound -->
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#6366f1"/>
+          <rect x="6"  y="12" width="3" height="8"  rx="1.5" fill="white"/>
+          <rect x="11" y="8"  width="3" height="16" rx="1.5" fill="white"/>
+          <rect x="16" y="5"  width="3" height="22" rx="1.5" fill="white"/>
+          <rect x="21" y="9"  width="3" height="14" rx="1.5" fill="white"/>
+          <rect x="26" y="13" width="3" height="6"  rx="1.5" fill="white"/>
+        </svg>
+        <span>VoiceScript</span>
+      </div>
+      <div class="header-badge">AI Powered</div>
+    </div>
+  </header>
+
+  <!-- ── MAIN CONTENT ─────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Hero section — the big intro text -->
+    <section class="hero">
+      <h1 class="hero-title">
+        Turn your voice<br/>into <span class="accent">text instantly</span>
+      </h1>
+      <p class="hero-sub">
+        Upload an audio file or record live — our AI transcribes it in seconds.
+      </p>
+    </section>
+
+    <!-- ── TWO CARDS: Upload + Record ───────────────── -->
+    <div class="cards-grid">
+
+      <!-- Card 1: Upload an audio file -->
+      <div class="card" id="upload-card">
+        <div class="card-icon">
+          <!-- Upload icon -->
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h2 class="card-title">Upload Audio File</h2>
+        <p class="card-desc">Supports WAV, MP3, FLAC formats</p>
+
+        <!-- The actual file input — hidden, we trigger it via button -->
+        <input type="file" id="audio-file-input" accept=".wav,.mp3,.flac" hidden />
+
+        <!-- Drop zone — click to open file picker -->
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('audio-file-input').click()">
+          <p id="drop-text">Click to choose a file or drag & drop here</p>
+          <span id="file-name-display" class="file-name-display"></span>
+        </div>
+
+        <!-- Button to send the file to backend -->
+        <button class="btn btn-primary" id="upload-btn" onclick="uploadAndTranscribe()">
+          Transcribe File
+        </button>
+      </div>
+
+      <!-- Card 2: Record from microphone -->
+      <div class="card" id="record-card">
+        <div class="card-icon record-icon">
+          <!-- Microphone icon -->
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+            <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <h2 class="card-title">Record Live</h2>
+        <p class="card-desc">Speak directly into your microphone</p>
+
+        <!-- Visual pulse animation shown while recording -->
+        <div class="record-visualizer" id="record-visualizer">
+          <div class="pulse-ring"></div>
+          <div class="pulse-dot"></div>
+          <span id="record-status">Ready to record</span>
+        </div>
+
+        <!-- Recording timer shows how long you've been recording -->
+        <div class="record-timer" id="record-timer">00:00</div>
+
+        <!-- Two buttons: Start recording / Stop recording -->
+        <div class="record-btns">
+          <button class="btn btn-record" id="start-btn" onclick="startRecording()">
+            Start Recording
+          </button>
+          <button class="btn btn-stop" id="stop-btn" onclick="stopRecording()" disabled>
+            Stop & Transcribe
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <!-- end cards-grid -->
+
+    <!-- ── RESULTS SECTION ───────────────────────────── -->
+    <!-- Hidden by default — shown when transcription completes -->
+    <section class="results-section" id="results-section">
+
+      <!-- Loading state — spinning animation while AI is working -->
+      <div class="loading-state" id="loading-state">
+        <div class="spinner"></div>
+        <p>Transcribing your audio...</p>
+      </div>
+
+      <!-- Result box — shown when text is ready -->
+      <div class="result-box" id="result-box">
+        <div class="result-header">
+          <h3>Transcript</h3>
+          <!-- Copy to clipboard button -->
+          <button class="btn-copy" id="copy-btn" onclick="copyTranscript()">
+            Copy Text
+          </button>
+        </div>
+        <!-- The actual transcript text appears here -->
+        <p class="transcript-text" id="transcript-text"></p>
+
+        <!-- Word count info -->
+        <div class="result-meta">
+          <span id="word-count"></span>
+          <button class="btn-clear" onclick="clearResults()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Error box — shown if something goes wrong -->
+      <div class="error-box" id="error-box">
+        <p id="error-text"></p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ── FOOTER ────────────────────────────────────────── -->
+  <footer class="footer">
+
+    <!-- Tech stack badges -->
+    <div class="footer-stack">
+      <span class="stack-badge badge-python">Python 3</span>
+      <span class="stack-badge badge-flask">Flask</span>
+      <span class="stack-badge badge-js">JavaScript</span>
+      <span class="stack-badge badge-whisper">Whisper AI</span>
+      <span class="stack-badge badge-demucs">Demucs</span>
+      <span class="stack-badge badge-pydub">pydub</span>
+      <span class="stack-badge badge-ffmpeg">ffmpeg</span>
+    </div>
+
+    <p class="footer-desc">
+      Speech-to-text powered by OpenAI Whisper · Vocal isolation by Facebook Demucs · Audio processing by pydub + ffmpeg
+    </p>
+
+    <p class="footer-by">By Tushar ❤️</p>
+
+  </footer>
+
+
+  <!-- Link to our JavaScript file — loaded LAST so HTML loads first -->
+  <script src="app.js"></script>
+
+</body>
+</html>
