@@ -1,13 +1,3 @@
----
-title: VoiceScript
-emoji: 🎙️
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: true
-license: mit
-short_description: AI Speech Recognition — OpenAI Whisper + Facebook Demucs
----
 
 <div align="center">
 
