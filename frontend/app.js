@@ -174,7 +174,26 @@ function showError(message) {
   document.getElementById("results-section").scrollIntoView({ behavior: "smooth" });
 }
 
+// Rotating messages so user knows pipeline is actively working
+const loadingMessages = [
+  'Starting beast mode pipeline...',
+  'Converting audio format...',
+  'Demucs isolating vocals from background...',
+  'Whisper AI transcribing clean vocals...',
+  'Almost there — processing final segments...',
+  'Finalizing transcript...'
+];
+let loadingMsgInterval = null;
+
 function showLoading() {
+  let msgIndex = 0;
+  const msgEl = document.getElementById("loading-msg");
+  if (msgEl) msgEl.textContent = loadingMessages[0];
+  loadingMsgInterval = setInterval(() => {
+    msgIndex = (msgIndex + 1) % loadingMessages.length;
+    if (msgEl) msgEl.textContent = loadingMessages[msgIndex];
+  }, 4000);
+
   document.getElementById("results-section").classList.add("visible");
   document.getElementById("loading-state").classList.add("visible");
   document.getElementById("result-box").classList.remove("visible");
@@ -182,6 +201,8 @@ function showLoading() {
 }
 
 function hideLoading() {
+  if (loadingMsgInterval) { clearInterval(loadingMsgInterval); loadingMsgInterval = null; }
+
   document.getElementById("loading-state").classList.remove("visible");
 }
 

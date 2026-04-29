@@ -135,7 +135,8 @@
       <!-- Loading state — spinning animation while AI is working -->
       <div class="loading-state" id="loading-state">
         <div class="spinner"></div>
-        <p>Transcribing your audio...</p>
+        <p id="loading-msg">Transcribing your audio...</p>
+        <p style="font-size:12px;color:var(--text-3);margin-top:6px;">⏳ Beast mode pipeline running — Demucs + Whisper AI processing.<br/>This takes 2-5 min depending on audio length. Please don't close this tab.</p>
       </div>
 
       <!-- Result box — shown when text is ready -->
