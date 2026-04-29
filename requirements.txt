@@ -1,20 +1,10 @@
 # requirements.txt
-# Install everything with: pip install -r requirements.txt
-# ---------------------------------------------------------
+# Install with: pip install -r requirements.txt
 
 flask==3.0.3
 flask-cors==4.0.1
 SpeechRecognition==3.11.0
 pydub==0.25.1
-
-# Whisper large-v3: OpenAI's most powerful transcription model
-# Downloads ~1.5GB model on first run (automatic, one time only)
 openai-whisper
-
-# numpy: required by Whisper for audio processing
 numpy
-
-# demucs: Facebook AI vocal isolation — strips background music
-# before transcription for dramatically better accuracy
-# First run downloads the htdemucs model (~80MB, automatic)
 demucs

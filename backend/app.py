@@ -1,82 +1,74 @@
 # app.py
 # ---------------------------------------------------------
-# THIS FILE IS THE SERVER — THE BRAIN OF THE BACKEND
+# THE SERVER — manages all API routes
 #
-# Flask is a Python library that lets us create a web server
-# in just a few lines. It listens for requests from the
-# frontend (the webpage) and sends back responses.
+# Changes for HF Spaces deployment:
+#   - Port changed from 5000 to 7860 (HF requirement)
+#   - HOST set to 0.0.0.0 (accepts external connections)
+#   - Added /health endpoint for HF to check app is alive
+#   - Serves frontend files directly from Flask
+#     (no separate frontend server needed on HF)
 # ---------------------------------------------------------
 
-import os                          # For working with files and folders
-from flask import Flask, request, jsonify  # Flask is our web framework
-from flask_cors import CORS        # Allows frontend to talk to backend
-from transcriber import transcribe_audio   # Our own file we just wrote
+import os
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from transcriber import transcribe_audio
 
-# ── Create the Flask app ──────────────────────────────────
-# Flask(__name__) creates a new web application
-# __name__ tells Flask where to find files relative to this script
 app = Flask(__name__)
-
-# ── Allow Cross-Origin Requests ───────────────────────────
-# By default, browsers block a webpage from calling a different server.
-# CORS(app) removes that block so our frontend can call our backend.
 CORS(app)
 
-# ── Set up the uploads folder ─────────────────────────────
-# os.path.dirname(__file__) = the folder this file is in (backend/)
-# os.path.join() builds the path: backend/../uploads = uploads/
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Paths
+BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
-
-# Create the uploads folder if it doesn't already exist
+FRONTEND_DIR  = os.path.join(BASE_DIR, "frontend")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-# ── Route 1: Home — just to check server is running ──────
-# A "route" is a URL path. When someone visits /, this runs.
+# ── Serve frontend files ───────────────────────────────────
+# On HF Spaces, Flask serves both the API AND the frontend HTML
+# So visiting the Space URL shows the VoiceScript UI directly
+
 @app.route("/")
-def home():
-    return jsonify({"message": "Speech Recognition API is running!"})
+def index():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+@app.route("/<path:filename>")
+def frontend_files(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
 
 
-# ── Route 2: Transcribe — the main feature ────────────────
-# When the frontend sends an audio file to /transcribe,
-# this function runs and returns the text.
-# methods=["POST"] means this only accepts POST requests (sending data)
+# ── Health check — HF uses this to verify app is running ──
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok", "app": "VoiceScript"})
+
+
+# ── Main transcription endpoint ────────────────────────────
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
-
-    # Step 1: Check if a file was actually sent
     if "audio" not in request.files:
         return jsonify({"success": False, "error": "No audio file received."}), 400
 
-    # Step 2: Get the file from the request
     audio_file = request.files["audio"]
 
-    # Step 3: Check the file isn't empty
     if audio_file.filename == "":
         return jsonify({"success": False, "error": "Empty filename."}), 400
 
-    # Step 4: Save the file temporarily to the uploads/ folder
-    file_path = os.path.join(UPLOAD_FOLDER, "temp_audio.wav")
+    file_path = os.path.join(UPLOAD_FOLDER, "temp_audio")
     audio_file.save(file_path)
 
-    # Step 5: Call our transcriber to convert audio → text
     result = transcribe_audio(file_path)
 
-    # Step 6: Delete the temp file after transcription (clean up)
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    # Step 7: Send the result back to the frontend as JSON
-    # JSON is like a structured text format — {"key": "value"}
     return jsonify(result)
 
 
-# ── Start the server ──────────────────────────────────────
-# This only runs when you directly run: python app.py
-# debug=True means it auto-restarts when you change code
+# ── Start server ───────────────────────────────────────────
 if __name__ == "__main__":
-    print("Starting Speech Recognition Server...")
-    print("Open http://localhost:5000 in your browser")
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 7860))
+    print(f"Starting VoiceScript Server on port {port}...")
+    print(f"Visit: http://localhost:{port}")
+    app.run(debug=False, host="0.0.0.0", port=port)
