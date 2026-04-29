@@ -1,3 +1,14 @@
+---
+title: VoiceScript
+emoji: 🎙️
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+pinned: true
+license: mit
+short_description: AI Speech Recognition — OpenAI Whisper + Facebook Demucs
+---
+
 <div align="center">
 
 <img src="https://readme-typing-svg.demolab.com?font=Space+Grotesk&weight=700&size=42&pause=1000&color=6366F1&center=true&vCenter=true&width=600&height=80&lines=VoiceScript+%F0%9F%8E%99%EF%B8%8F;Speech+to+Text%2C+Reimagined." alt="VoiceScript" />
@@ -13,6 +24,7 @@
   <img src="https://img.shields.io/badge/OpenAI-Whisper-412991?style=for-the-badge&logo=openai&logoColor=white" />
   <img src="https://img.shields.io/badge/Facebook-Demucs-1877F2?style=for-the-badge&logo=meta&logoColor=white" />
   <img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge" />
+  <a href="https://huggingface.co/spaces/Tusharz/VoiceScript"><img src="https://img.shields.io/badge/🤗 Hugging Face-Live Demo-FF9D00?style=for-the-badge" /></a>
 </p>
 
 <p align="center">
@@ -212,7 +224,7 @@ cd VoiceScript
 python -m venv venv
 
 # Activate — Windows
-venv\Scripts\activate
+venv\Scriptsctivate
 
 # Activate — Mac/Linux
 source venv/bin/activate
@@ -253,7 +265,7 @@ Open `frontend/index.html` directly in your browser, or use the [Live Server](ht
 
 ## 🚀 Live Demo
 
-🔗 **[voicescript.onrender.com](https://voicescript.onrender.com)** *(coming soon — deployment in progress)*
+🔗 **[VoiceScript — Live Demo](https://huggingface.co/spaces/Tusharz/VoiceScript)** — Live and running on Hugging Face Spaces
 
 ---
 
