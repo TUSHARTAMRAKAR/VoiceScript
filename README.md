@@ -1,17 +1,8 @@
----
-title: VoiceScript
-emoji: 🎙️
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: true
-license: mit
-short_description: AI Speech Recognition — OpenAI Whisper + Facebook Demucs
----
 
 <div align="center">
 
 <img src="https://readme-typing-svg.demolab.com?font=Space+Grotesk&weight=700&size=42&pause=1000&color=6366F1&center=true&vCenter=true&width=600&height=80&lines=VoiceScript+%F0%9F%8E%99%EF%B8%8F;Speech+to+Text%2C+Reimagined." alt="VoiceScript" />
+
 
 <p align="center">
   <strong>A full-stack AI-powered speech recognition system that converts any audio into precise text — powered by OpenAI Whisper and Facebook Demucs vocal isolation.</strong>
