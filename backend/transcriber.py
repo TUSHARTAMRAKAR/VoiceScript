@@ -185,7 +185,7 @@ def convert_to_whisper_wav(input_path, output_path):
 # STEP 3 — WHISPER TRANSCRIPTION (medium model, all settings maxed)
 # ═══════════════════════════════════════════════════════════
 
-def transcribe_with_whisper(wav_path, duration_secs):
+def transcribe_with_whisper(wav_path, duration_secs, mode="transcribe"):
     """
     Runs Whisper medium with every accuracy setting maximized.
 
@@ -232,20 +232,51 @@ def transcribe_with_whisper(wav_path, duration_secs):
     print(f"[INFO] ESTIMATED TIME : ~{est_time}s")
     print(f"[INFO] ─────────────────────────────────────────")
 
-    result = model.transcribe(
-        wav_path,
-        language                   = "en",
-        fp16                       = False,
-        task                       = "transcribe",
-        beam_size                  = 5,
-        best_of                    = 5,
-        temperature                = 0,
-        patience                   = 2,
-        condition_on_previous_text = True,
-        no_speech_threshold        = 0.25,
-        compression_ratio_threshold= 2.6,
-        word_timestamps            = True,
-    )
+    # mode="translate_to_english" → Whisper auto-detects language, outputs English
+    # mode="transcribe"           → Standard English transcription
+    whisper_task = "translate"  if mode == "translate_to_english" else "transcribe"
+    whisper_lang = None         if mode == "translate_to_english" else "en"
+
+    if mode == "translate_to_english":
+        print(f"[INFO] MODE: Multilingual → English translation")
+        print(f"[INFO] Whisper will auto-detect language and output English")
+    else:
+        print(f"[INFO] MODE: Standard English transcription")
+
+    # Translation mode needs different settings than transcription mode.
+    # The tensor size mismatch error happens because patience=2 and best_of=5
+    # conflict with Whisper's internal beam search in translation mode.
+    # Fix: use safer/simpler settings for translation, full settings for transcription.
+    if mode == "translate_to_english":
+        result = model.transcribe(
+            wav_path,
+            language                   = whisper_lang,   # None = auto-detect
+            fp16                       = False,
+            task                       = "translate",    # translate any language → English
+            beam_size                  = 5,
+            temperature                = 0,
+            condition_on_previous_text = True,
+            no_speech_threshold        = 0.25,
+            compression_ratio_threshold= 2.6,
+            word_timestamps            = True,
+            # NOTE: patience and best_of are intentionally excluded in translate mode
+            # They cause "Sizes of tensors must match" error with task="translate"
+        )
+    else:
+        result = model.transcribe(
+            wav_path,
+            language                   = "en",
+            fp16                       = False,
+            task                       = "transcribe",
+            beam_size                  = 5,
+            best_of                    = 5,
+            temperature                = 0,
+            patience                   = 2,
+            condition_on_previous_text = True,
+            no_speech_threshold        = 0.25,
+            compression_ratio_threshold= 2.6,
+            word_timestamps            = True,
+        )
 
     # Build clean transcript from segments
     segments = result.get("segments", [])
@@ -259,8 +290,30 @@ def transcribe_with_whisper(wav_path, duration_secs):
     full_text  = " ".join(lines).strip()
     word_count = len(full_text.split())
 
+    # Extract detected language from Whisper result
+    detected_lang = result.get("language", "unknown")
     print(f"[INFO] Transcription complete: {word_count} words from {len(segments)} segments")
-    return full_text
+    print(f"[INFO] Detected language: {detected_lang}")
+
+    # Format segments with timestamps right here
+    # Each segment gets start_fmt and end_fmt so frontend can use immediately
+    formatted = []
+    for seg in segments:
+        start_sec = int(seg.get("start", 0))
+        end_sec   = int(seg.get("end",   0))
+        seg_text  = seg.get("text", "").strip()
+        if not seg_text:
+            continue
+        formatted.append({
+            "start"    : start_sec,
+            "end"      : end_sec,
+            "start_fmt": f"{start_sec // 60:02d}:{start_sec % 60:02d}",
+            "end_fmt"  : f"{end_sec   // 60:02d}:{end_sec   % 60:02d}",
+            "text"     : seg_text
+        })
+
+    print(f"[INFO] {len(formatted)} formatted segments ready for frontend")
+    return {"text": full_text, "detected_language": detected_lang, "segments": formatted}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -314,12 +367,15 @@ def _cleanup(paths):
 # MAIN — called by app.py for every transcription request
 # ═══════════════════════════════════════════════════════════
 
-def transcribe_audio(file_path):
+def transcribe_audio(file_path, mode="transcribe"):
     """
     Full beast mode pipeline:
       1. Preprocess (convert + normalize)
       2. Vocal isolation via demucs (if available)
       3. Whisper medium with max accuracy settings
+
+    mode = "transcribe"           → standard English transcription
+    mode = "translate_to_english" → any language audio → English text
     """
 
     uploads_dir  = os.path.dirname(file_path)
@@ -360,14 +416,19 @@ def transcribe_audio(file_path):
 
         # ── Step 3: Transcribe ────────────────────────
         if WHISPER_AVAILABLE:
-            text   = transcribe_with_whisper(audio_for_whisper, duration_secs)
-            engine = f"Whisper {WHISPER_MODEL_SIZE}"
+            whisper_result  = transcribe_with_whisper(audio_for_whisper, duration_secs, mode=mode)
+            text            = whisper_result["text"]
+            detected_lang   = whisper_result["detected_language"]
+            segments        = whisper_result["segments"]
+            engine          = f"Whisper {WHISPER_MODEL_SIZE}" + (" (Multilingual→EN)" if mode == "translate_to_english" else "")
             if is_demucs_available():
                 engine += " + Demucs vocal isolation"
         else:
             print("[INFO] Whisper not installed — using Google fallback")
-            text   = transcribe_with_google_fallback(audio_for_whisper, duration_ms)
-            engine = "Google Speech Recognition"
+            text          = transcribe_with_google_fallback(audio_for_whisper, duration_ms)
+            detected_lang = "unknown"
+            segments      = []
+            engine        = "Google Speech Recognition"
 
         print("[INFO] === PIPELINE COMPLETE ===")
 
@@ -385,10 +446,46 @@ def transcribe_audio(file_path):
 
     word_count = len(text.split())
 
+    # Language code → full name mapping for display
+    lang_names = {
+        "en": "English", "hi": "Hindi", "de": "German", "fr": "French",
+        "es": "Spanish", "it": "Italian", "pt": "Portuguese", "ru": "Russian",
+        "ja": "Japanese", "ko": "Korean", "zh": "Chinese", "ar": "Arabic",
+        "nl": "Dutch", "pl": "Polish", "tr": "Turkish", "sv": "Swedish",
+        "da": "Danish", "fi": "Finnish", "nb": "Norwegian", "uk": "Ukrainian",
+        "cs": "Czech", "ro": "Romanian", "hu": "Hungarian", "el": "Greek",
+        "he": "Hebrew", "th": "Thai", "vi": "Vietnamese", "id": "Indonesian",
+        "ms": "Malay", "bn": "Bengali", "ur": "Urdu", "fa": "Persian",
+        "ta": "Tamil", "te": "Telugu", "ml": "Malayalam", "kn": "Kannada",
+    }
+    detected_lang_name = lang_names.get(detected_lang, detected_lang.upper() if detected_lang != "unknown" else "Unknown")
+
+    # Format segments here — convert raw Whisper segments to clean
+    # { start_fmt, end_fmt, text } objects for the frontend
+    formatted_segments = []
+    for seg in segments:
+        start_sec = int(seg.get("start", 0))
+        end_sec   = int(seg.get("end",   0))
+        seg_text  = seg.get("text", "").strip()
+        if not seg_text:
+            continue
+        formatted_segments.append({
+            "start"    : start_sec,
+            "end"      : end_sec,
+            "start_fmt": f"{start_sec // 60:02d}:{start_sec % 60:02d}",
+            "end_fmt"  : f"{end_sec   // 60:02d}:{end_sec   % 60:02d}",
+            "text"     : seg_text
+        })
+
+    print(f"[INFO] Returning {len(formatted_segments)} formatted segments to frontend")
+
     return {
-        "success"   : True,
-        "transcript": text,
-        "duration"  : round(duration_secs, 1),
-        "word_count": word_count,
-        "engine"    : engine
+        "success"               : True,
+        "transcript"            : text,
+        "duration"              : round(duration_secs, 1),
+        "word_count"            : word_count,
+        "engine"                : engine,
+        "detected_language"     : detected_lang,
+        "detected_language_name": detected_lang_name,
+        "segments"              : formatted_segments
     }
